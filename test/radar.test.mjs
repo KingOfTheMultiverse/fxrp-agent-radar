@@ -57,3 +57,37 @@ for (let i = 1; i < path.length; i++) {
   assert.ok(path[i].score <= path[i - 1].score, 'score must be monotonically non-increasing under stress');
 }
 console.log('stress-path tests passed');
+
+// --- redemption queue preview ------------------------------------------------
+import { previewRedemption } from '../src/radar.mjs';
+const LOT = 10_000_000n; // 10 XRP at 6dp
+const byAgent = {
+  '0xaaa': { address: '0xAAA', backingSurplus: 1.2, status: 'NORMAL' },
+  '0xbbb': { address: '0xBBB', backingSurplus: -0.3, status: 'NORMAL' }, // under-backed
+};
+const queue = [
+  { agentVault: '0xAAA', ticketValueUBA: 10_000_000n }, // 1 lot
+  { agentVault: '0xBBB', ticketValueUBA: 30_000_000n }, // 3 lots
+  { agentVault: '0xAAA', ticketValueUBA: 50_000_000n },
+];
+
+// FIFO: 2 lots must come from the first ticket then spill into the second.
+const p = previewRedemption(queue, byAgent, 2, LOT);
+assert.equal(p.requestedXRP, 20, 'two lots is 20 XRP');
+assert.equal(p.filledXRP, 20, 'queue is deep enough to fill it');
+assert.equal(p.shortfallXRP, 0, 'no shortfall expected');
+assert.equal(p.fills.length, 2, 'the fill spans both agents');
+assert.equal(p.atRiskXRP, 10, 'the half served by the under-backed agent is at risk');
+assert.ok(Math.abs(p.atRiskShare - 0.5) < 1e-9, 'at-risk share is one half');
+
+// Order matters: 1 lot comes entirely from the healthy agent at the head.
+const one = previewRedemption(queue, byAgent, 1, LOT);
+assert.equal(one.fills.length, 1, 'one lot is served by a single ticket');
+assert.equal(one.atRiskXRP, 0, 'head of queue is healthy, so nothing at risk');
+
+// A queue shallower than the request must report the shortfall, not silently fill.
+const shallow = previewRedemption([{ agentVault: '0xAAA', ticketValueUBA: 10_000_000n }], byAgent, 5, LOT);
+assert.equal(shallow.filledXRP, 10, 'only what the queue holds is filled');
+assert.equal(shallow.shortfallXRP, 40, 'the rest is reported as shortfall');
+
+console.log('redemption-preview tests passed');

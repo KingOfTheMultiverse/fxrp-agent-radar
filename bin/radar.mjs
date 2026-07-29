@@ -6,7 +6,10 @@
  *   node bin/radar.mjs --lots 5     also pick the best agent for 5 lots
  *   node bin/radar.mjs --json       machine-readable output
  */
-import { connect, scanAgents, bestAgentForLots, fmt } from '../src/radar.mjs';
+import {
+  connect, scanAgents, bestAgentForLots, fmt,
+  loadRedemptionQueue, previewRedemption,
+} from '../src/radar.mjs';
 
 const argv = process.argv.slice(2);
 const flag = (name, dflt = null) => {
@@ -67,10 +70,26 @@ console.log(
 const lots = Number(flag('--lots', 0));
 if (lots > 0) {
   const best = bestAgentForLots(agents, lots);
-  console.log(`\nBest agent for ${lots} lot(s) (${lots * 10} XRP):`);
+  console.log(`\nMINT — you choose the agent. Best for ${lots} lot(s) (${lots * 10} XRP):`);
   if (!best) console.log('  none — no healthy agent has enough free lots');
   else {
     console.log(`  ${best.address}  score=${best.score}  fee=${fmt.bipsPct(best.feeBIPS)}  freeLots=${best.freeLots}`);
     console.log(`  underlying XRP address: ${best.underlyingAddress}`);
   }
+}
+
+const redeemLots = Number(flag('--redeem', 0));
+if (redeemLots > 0) {
+  const lotSize = await conn.assetManager.lotSize();
+  const queue = await loadRedemptionQueue(conn);
+  const byAgent = Object.fromEntries(agents.map((a) => [a.address.toLowerCase(), a]));
+  const p = previewRedemption(queue, byAgent, redeemLots, lotSize);
+
+  console.log(`\nREDEEM — you do NOT choose. ${redeemLots} lot(s) = ${p.requestedXRP} XRP off a ${queue.length}-ticket queue:`);
+  for (const f of p.fills) {
+    const risk = f.underBacked ? '  <-- under-backed, this share likely pays collateral not XRP' : '';
+    console.log(`  ${(f.share * 100).toFixed(1).padStart(5)}%  ${fmt.xrp(f.uba).padStart(10)} XRP  ${f.address}  backing=${f.backingSurplus === null ? '?' : fmt.pct(f.backingSurplus)}${risk}`);
+  }
+  if (p.shortfallXRP > 0) console.log(`  shortfall: ${p.shortfallXRP} XRP — queue is too shallow to fill this request`);
+  console.log(`  at risk of collateral-instead-of-XRP: ${p.atRiskXRP} XRP (${fmt.pct(p.atRiskShare)})`);
 }

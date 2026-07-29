@@ -190,6 +190,72 @@ export async function scanAgents(conn) {
 }
 
 /**
+ * Walks the FIFO redemption queue to find who will actually serve a redemption.
+ *
+ * `redeem()` takes no agent argument — tickets are consumed in order, so a redeemer
+ * cannot choose. What they *can* do is look ahead: this maps `lots` onto the queue and
+ * reports the share each agent will fill and how much of it sits with agents whose
+ * underlying XRP does not cover what they owe. That portion is the part likely to pay
+ * out in collateral rather than XRP.
+ *
+ * @param queue    [{ agentVault, ticketValueUBA }] in queue order
+ * @param byAgent  address (lowercased) -> scanned agent
+ * @param lots     lots the user intends to redeem
+ * @param lotSizeUBA  UBA per lot
+ */
+export function previewRedemption(queue, byAgent, lots, lotSizeUBA) {
+  let remaining = BigInt(lots) * BigInt(lotSizeUBA);
+  const requested = remaining;
+  const fills = new Map();
+
+  for (const t of queue) {
+    if (remaining <= 0n) break;
+    const take = t.ticketValueUBA < remaining ? t.ticketValueUBA : remaining;
+    const key = String(t.agentVault).toLowerCase();
+    fills.set(key, (fills.get(key) ?? 0n) + take);
+    remaining -= take;
+  }
+
+  const filled = requested - remaining;
+  const rows = [...fills.entries()].map(([addr, uba]) => {
+    const agent = byAgent[addr];
+    return {
+      address: agent?.address ?? addr,
+      uba,
+      xrp: Number(uba) / 1e6,
+      share: filled > 0n ? Number(uba) / Number(filled) : 0,
+      backingSurplus: agent?.backingSurplus ?? null,
+      status: agent?.status ?? 'UNKNOWN',
+      underBacked: agent ? agent.backingSurplus < 0 : null,
+    };
+  }).sort((a, b) => b.share - a.share);
+
+  const atRisk = rows.filter((r) => r.underBacked).reduce((s, r) => s + r.uba, 0n);
+
+  return {
+    requestedXRP: Number(requested) / 1e6,
+    filledXRP: Number(filled) / 1e6,
+    shortfallXRP: Number(remaining) / 1e6, // queue too shallow to serve the request
+    fills: rows,
+    atRiskXRP: Number(atRisk) / 1e6,
+    atRiskShare: filled > 0n ? Number(atRisk) / Number(filled) : 0,
+  };
+}
+
+/** Reads the redemption queue, paging until exhausted or `max` tickets collected. */
+export async function loadRedemptionQueue({ assetManager }, max = 200) {
+  const out = [];
+  let cursor = 0n;
+  while (out.length < max) {
+    const [tickets, next] = await assetManager.redemptionQueue(cursor, 50);
+    for (const t of tickets) out.push({ agentVault: t[1], ticketValueUBA: BigInt(t[2]) });
+    if (tickets.length === 0 || next === 0n) break;
+    cursor = next;
+  }
+  return out;
+}
+
+/**
  * Replays an agent's score as its collateral and backing degrade.
  *
  * Live testnet agents are all heavily over-collateralised, so the risk logic never

@@ -141,14 +141,14 @@
   <header>
     <div class="eyebrow">Flare FAssets · Coston2</div>
     <h1>FXRP Agent Radar</h1>
-    <p class="lede">Minting or redeeming FXRP means picking a collateralised agent. This ranks them by the two risks the protocol never surfaces: how close each one sits to liquidation, and whether it actually holds the XRP it owes.</p>
+    <p class="lede">FAssets splits the risk in two. <strong>Minting</strong> lets you choose an agent — so it pays to know which is safe. <strong>Redeeming</strong> does not: <code>redeem()</code> takes no agent, tickets are consumed FIFO. This scores agents for the first case and reads the queue ahead for the second.</p>
     <p class="chain num" id="chain">loading…</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
 
   <section class="panel">
-    <h2>Agents, ranked by risk-adjusted score</h2>
+    <h2>Mint — agents you can choose, ranked by risk-adjusted score</h2>
     <div class="scroll">
       <table>
         <thead>
@@ -166,6 +166,25 @@
         <tbody id="rows"></tbody>
       </table>
     </div>
+  </section>
+
+  <section class="panel" id="redeemPanel">
+    <h2 id="redeemTitle">Redeem — who the queue will actually send you to</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="r">Share</th>
+            <th class="r">XRP</th>
+            <th>Agent</th>
+            <th>XRP backing</th>
+            <th>What you receive</th>
+          </tr>
+        </thead>
+        <tbody id="redeemRows"></tbody>
+      </table>
+    </div>
+    <p class="foot" id="redeemFoot"></p>
   </section>
 
   <section class="panel" id="stressPanel">
@@ -243,6 +262,30 @@ function render(d) {
       <td>${bar(a.backingSurplus)}<div class="sub num">${n0(a.underlyingXRP)} held vs ${n0(a.requiredXRP)} owed</div></td>
       <td>${flags(a.warnings)}</td>
     </tr>`).join('');
+
+  const r = d.redemption;
+  if (r) {
+    document.getElementById('redeemTitle').textContent =
+      `Redeem — who the queue sends you to for ${n0(r.lots)} lots (${n0(r.requestedXRP)} XRP)`;
+    const maxShare = Math.max(...r.fills.map(f => f.share), 1e-9);
+    document.getElementById('redeemRows').innerHTML = r.fills.map(f => `
+      <tr data-sev="${f.underBacked ? 'crit' : 'ok'}">
+        <td class="r stripe">${barTo(f.share, maxShare)}</td>
+        <td class="r num">${n0(f.xrp)}</td>
+        <td><div class="addr">${f.address.slice(0, 10)}…${f.address.slice(-6)}</div></td>
+        <td class="num">${f.backingSurplus === null ? '?' : pct(f.backingSurplus)}</td>
+        <td>${f.underBacked
+          ? '<div class="flag crit"><span class="i">!</span><span>under-backed — this share likely pays collateral, not XRP</span></div>'
+          : '<span class="clear">XRP</span>'}</td>
+      </tr>`).join('');
+    document.getElementById('redeemFoot').innerHTML =
+      `<code>redeem()</code> takes no agent argument — tickets are consumed in queue order, so this split is not a preference, it is what you will get. `
+      + `Queue holds ${n0(r.queueTickets)} tickets at ${r.lotSizeXRP} XRP per lot. `
+      + (r.shortfallXRP > 0 ? `<strong>Shortfall ${n0(r.shortfallXRP)} XRP</strong> — the queue is too shallow to fill this request. ` : '')
+      + `At risk of paying collateral instead of XRP: <strong>${n0(r.atRiskXRP)} XRP (${pct(r.atRiskShare)})</strong>.`;
+  } else {
+    document.getElementById('redeemPanel').remove();
+  }
 
   if (!d.stress) { document.getElementById('stressPanel').remove(); return; }
   document.getElementById('stressAgent').textContent = d.stress.agent.slice(0, 10) + '…' + d.stress.agent.slice(-6);
