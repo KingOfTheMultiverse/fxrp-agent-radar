@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FXRP Agent Radar — Flare FAssets</title>
+<style>
+  :root {
+    color-scheme: light;
+    /* Neutrals carry a slight cool bias toward the blue accent rather than pure grey. */
+    --plane: #f4f5f7;
+    --surface: #fbfbfc;
+    --ink: #0d1017;
+    --ink-2: #4a4f5a;
+    --muted: #858b98;
+    --rule: #e3e5ea;
+    --edge: rgba(13,16,23,0.10);
+    --seq: #2a78d6;
+    --track: #e3e5ea;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --plane: #0b0d11;
+      --surface: #14171d;
+      --ink: #f2f4f8;
+      --ink-2: #b3b9c6;
+      --muted: #7d8494;
+      --rule: #242832;
+      --edge: rgba(255,255,255,0.09);
+      --seq: #3987e5;
+      --track: #242832;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane: #0b0d11;
+    --surface: #14171d;
+    --ink: #f2f4f8;
+    --ink-2: #b3b9c6;
+    --muted: #7d8494;
+    --rule: #242832;
+    --edge: rgba(255,255,255,0.09);
+    --seq: #3987e5;
+    --track: #242832;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px 72px;
+    background: var(--plane); color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+  .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  h1 { font-size: 27px; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { color: var(--ink-2); margin: 0; max-width: 68ch; }
+  .chain { color: var(--muted); font-size: 12.5px; margin: 2px 0 0; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); gap: 12px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--edge);
+    border-radius: 8px; padding: 15px 17px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .tile .k { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .tile .v { font-size: 30px; line-height: 1.1; letter-spacing: -0.025em; }
+  .tile .n { font-size: 12px; color: var(--muted); }
+
+  .panel { background: var(--surface); border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; }
+  .panel > h2 {
+    font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 600;
+    margin: 0; padding: 14px 18px; color: var(--ink-2); border-bottom: 1px solid var(--rule);
+  }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 960px; }
+  th, td { text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  th {
+    color: var(--muted); font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; padding-top: 11px; padding-bottom: 11px;
+  }
+  th.r, td.r { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Severity stripe — encodes row state in form, so it survives greyscale and CVD. */
+  td.stripe { position: relative; padding-left: 18px; }
+  td.stripe::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--good);
+  }
+  tr[data-sev="warn"] td.stripe::before { background: var(--serious); }
+  tr[data-sev="crit"] td.stripe::before { background: var(--critical); }
+
+  .score { font-size: 21px; letter-spacing: -0.02em; }
+  .addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 3px 8px 3px 6px; border-radius: 4px;
+    border: 1px solid var(--edge); color: var(--ink-2);
+  }
+  .pill .d { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--good); }
+  .pill.warn .d { background: var(--warning); }
+  .pill.crit .d { background: var(--critical); }
+
+  .bar { display: flex; align-items: center; gap: 9px; }
+  .track { position: relative; flex: 1; min-width: 68px; height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+  .fill { position: absolute; inset: 0 auto 0 0; background: var(--seq); border-radius: 3px; }
+  .bar .v { font-size: 12px; color: var(--ink-2); min-width: 56px; text-align: right; }
+  .sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  .flag { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: var(--ink-2); padding: 2px 0; }
+  .flag .i { flex: none; font-weight: 700; line-height: 1.35; }
+  .flag.warn .i { color: var(--serious); }
+  .flag.crit .i { color: var(--critical); }
+  .clear { color: var(--muted); font-size: 12px; }
+
+  .foot { padding: 12px 18px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 12px; margin: 0; }
+  .notes { color: var(--ink-2); font-size: 13.5px; }
+  .notes h3 { font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .notes ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--surface); border: 1px solid var(--edge); border-radius: 3px; padding: 1px 5px; }
+  a { color: var(--seq); }
+  :focus-visible { outline: 2px solid var(--seq); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Flare FAssets · Coston2</div>
+    <h1>FXRP Agent Radar</h1>
+    <p class="lede">FAssets splits the risk in two. <strong>Minting</strong> lets you choose an agent — so it pays to know which is safe. <strong>Redeeming</strong> does not: <code>redeem()</code> takes no agent, tickets are consumed FIFO. This scores agents for the first case and reads the queue ahead for the second.</p>
+    <p class="chain num" id="chain">loading…</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section class="panel">
+    <h2>Mint — agents you can choose, ranked by risk-adjusted score</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="r">Score</th>
+            <th>Agent</th>
+            <th class="r">Fee</th>
+            <th class="r">Free lots</th>
+            <th>Vault buffer</th>
+            <th>Pool buffer</th>
+            <th>XRP backing</th>
+            <th>Assessment</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="redeemPanel">
+    <h2 id="redeemTitle">Redeem — who the queue will actually send you to</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="r">Share</th>
+            <th class="r">XRP</th>
+            <th>Agent</th>
+            <th>XRP backing</th>
+            <th>What you receive</th>
+          </tr>
+        </thead>
+        <tbody id="redeemRows"></tbody>
+      </table>
+    </div>
+    <p class="foot" id="redeemFoot"></p>
+  </section>
+
+  <section class="panel" id="stressPanel">
+    <h2>Stress preview — response as an agent degrades</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="r">Stress</th>
+            <th class="r">Score</th>
+            <th>Vault buffer</th>
+            <th>Pool buffer</th>
+            <th>XRP backing</th>
+            <th>Flags raised</th>
+          </tr>
+        </thead>
+        <tbody id="stressRows"></tbody>
+      </table>
+    </div>
+    <p class="foot">Simulated, not on-chain. Every live agent on Coston2 is heavily over-collateralised, so the dangerous end of the curve never appears in real data. This replays the same scoring functions down a degradation path from <span id="stressAgent" class="addr"></span>'s real current state.</p>
+  </section>
+
+  <div class="notes">
+    <h3>How the score works</h3>
+    <ul>
+      <li><strong>Collateral buffer</strong> — headroom above the liquidation threshold, relative to it. <code>0%</code> means sitting exactly on the line. Vault and pool have different thresholds (120% and 150%), are scored separately, and the weaker one governs.</li>
+      <li><strong>XRP backing surplus</strong> — underlying XRP held versus owed to redeemers. Negative means redemption pays out <em>collateral</em> at the default factor instead of XRP: you get paid, but not in the asset you asked for.</li>
+      <li><strong>Weighting</strong> — 40% collateral safety, 30% backing, 20% capacity, 10% fee. Safety outranks price deliberately; basis points never compensate for a failed redemption.</li>
+      <li>Any agent outside <code>NORMAL</code> status scores 0 and is never routed to.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const pct = (x) => (x * 100).toFixed(1) + '%';
+const n0 = (n) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+const usd = (n) => '$' + n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+const barTo = (value, cap) => {
+  const w = Math.max(0, Math.min(1, value / cap)) * 100;
+  return `<div class="bar"><span class="track"><span class="fill" style="width:${w.toFixed(1)}%"></span></span><span class="v num">${pct(value)}</span></div>`;
+};
+const AGENT_CAP = 3;                       // fixed cap keeps agents comparable to each other
+const bar = (v) => barTo(v, AGENT_CAP);
+
+const sev = (a) => a.warnings.some(w => /do not route|may default/.test(w)) ? 'crit'
+                 : a.warnings.length ? 'warn' : 'ok';
+const flags = (list) => list.length
+  ? list.map(w => `<div class="flag ${/do not route|may default/.test(w) ? 'crit' : 'warn'}"><span class="i">!</span><span>${w}</span></div>`).join('')
+  : '<span class="clear">no flags — safe to route</span>';
+
+function render(d) {
+  const t = d.totals;
+  document.getElementById('chain').textContent =
+    `${d.network} · chain ${d.chainId} · block ${n0(d.block)} · XRP ${usd(d.prices.XRP.usd)} · FLR $${d.prices.FLR.usd.toFixed(5)} · FTSOv2 · ${new Date(d.generatedAt).toUTCString()}`;
+
+  document.getElementById('tiles').innerHTML = [
+    ['Healthy agents', `${t.healthy}/${t.agents}`, 'status NORMAL'],
+    ['FXRP minted', n0(t.mintedXRP), t.mintedUsd ? `${usd(t.mintedUsd)} at FTSO price` : ''],
+    ['Free capacity', n0(t.freeLots) + ' lots', `${n0(t.freeLots * 10)} XRP mintable`],
+    ['Best score', String(d.agents[0]?.score ?? '—'), 'risk-adjusted, 0–100'],
+  ].map(([k, v, n]) => `<div class="tile"><span class="k">${k}</span><span class="v num">${v}</span><span class="n num">${n}</span></div>`).join('');
+
+  document.getElementById('rows').innerHTML = d.agents.map(a => `
+    <tr data-sev="${sev(a)}">
+      <td class="r stripe"><span class="score num">${a.score}</span></td>
+      <td>
+        <span class="pill ${a.status === 'NORMAL' ? '' : (a.status === 'CCB' ? 'warn' : 'crit')}"><span class="d"></span>${a.status}</span>
+        <div class="addr">${a.address.slice(0, 10)}…${a.address.slice(-6)}</div>
+      </td>
+      <td class="r num">${(a.feeBIPS / 100).toFixed(2)}%</td>
+      <td class="r num">${n0(a.freeLots)}</td>
+      <td>${bar(a.vaultBuffer)}<div class="sub num">${a.vaultCR.toFixed(0)}% vs ${a.vaultMin.toFixed(0)}% min · ${a.vaultSymbol}</div></td>
+      <td>${bar(a.poolBuffer)}<div class="sub num">${a.poolCR.toFixed(0)}% vs ${a.poolMin.toFixed(0)}% min · ${a.poolSymbol}</div></td>
+      <td>${bar(a.backingSurplus)}<div class="sub num">${n0(a.underlyingXRP)} held vs ${n0(a.requiredXRP)} owed</div></td>
+      <td>${flags(a.warnings)}</td>
+    </tr>`).join('');
+
+  const r = d.redemption;
+  if (r) {
+    document.getElementById('redeemTitle').textContent =
+      `Redeem — who the queue sends you to for ${n0(r.lots)} lots (${n0(r.requestedXRP)} XRP)`;
+    const maxShare = Math.max(...r.fills.map(f => f.share), 1e-9);
+    document.getElementById('redeemRows').innerHTML = r.fills.map(f => `
+      <tr data-sev="${f.underBacked ? 'crit' : 'ok'}">
+        <td class="r stripe">${barTo(f.share, maxShare)}</td>
+        <td class="r num">${n0(f.xrp)}</td>
+        <td><div class="addr">${f.address.slice(0, 10)}…${f.address.slice(-6)}</div></td>
+        <td class="num">${f.backingSurplus === null ? '?' : pct(f.backingSurplus)}</td>
+        <td>${f.underBacked
+          ? '<div class="flag crit"><span class="i">!</span><span>under-backed — this share likely pays collateral, not XRP</span></div>'
+          : '<span class="clear">XRP</span>'}</td>
+      </tr>`).join('');
+    document.getElementById('redeemFoot').innerHTML =
+      `<code>redeem()</code> takes no agent argument — tickets are consumed in queue order, so this split is not a preference, it is what you will get. `
+      + `Queue holds ${n0(r.queueTickets)} tickets at ${r.lotSizeXRP} XRP per lot; this fill consumes ${r.ticketsUsed} of the ${r.maxRedeemedTickets}-ticket protocol cap per transaction. `
+      + (r.shortfallXRP > 0 ? (r.cappedByTickets
+        ? `<strong>Shortfall ${n0(r.shortfallXRP)} XRP</strong> — the ticket cap was reached, so this needs more than one redemption transaction. `
+        : `<strong>Shortfall ${n0(r.shortfallXRP)} XRP</strong> — the queue is too shallow to fill this request. `) : '')
+      + `At risk of paying collateral instead of XRP: <strong>${n0(r.atRiskXRP)} XRP (${pct(r.atRiskShare)})</strong>.`;
+  } else {
+    document.getElementById('redeemPanel').remove();
+  }
+
+  if (!d.stress) { document.getElementById('stressPanel').remove(); return; }
+  document.getElementById('stressAgent').textContent = d.stress.agent.slice(0, 10) + '…' + d.stress.agent.slice(-6);
+  // Each stress column scales to its own starting value so the decline stays legible.
+  const p0 = d.stress.path[0];
+  const cap = {
+    v: Math.max(p0.vaultBuffer, 1e-9),
+    p: Math.max(p0.poolBuffer, 1e-9),
+    b: Math.max(p0.backingSurplus, 1e-9),
+  };
+  document.getElementById('stressRows').innerHTML = d.stress.path.map(s => {
+    const level = s.warnings.some(w => /may default/.test(w)) ? 'crit' : s.warnings.length ? 'warn' : 'ok';
+    return `<tr data-sev="${level}">
+      <td class="r stripe num">${(s.stress * 100).toFixed(0)}%</td>
+      <td class="r"><span class="score num">${s.score}</span></td>
+      <td>${barTo(s.vaultBuffer, cap.v)}</td>
+      <td>${barTo(s.poolBuffer, cap.p)}</td>
+      <td>${barTo(s.backingSurplus, cap.b)}</td>
+      <td>${flags(s.warnings)}</td>
+    </tr>`;
+  }).join('');
+}
+
+render({
+  "generatedAt": "2026-07-29T03:37:33.084Z",
+  "network": "Coston2",
+  "chainId": 114,
+  "block": 33387075,
+  "prices": {
+    "FLR": {
+      "usd": 0.00624026,
+      "updatedAt": 1785296247
+    },
+    "XRP": {
+      "usd": 1.073133,
+      "updatedAt": 1785296247
+    }
+  },
+  "totals": {
+    "agents": 4,
+    "healthy": 4,
+    "mintedXRP": 8286.743438,
+    "mintedUsd": 8892.777845851253,
+    "freeLots": 1603
+  },
+  "thresholds": {
+    "0xc67dce33d7a8efa5ffeb961899c73fe01bce9273": {
+      "symbol": "C2FLR",
+      "collateralClass": 1,
+      "minCollateralRatioBIPS": 15000,
+      "safetyMinCollateralRatioBIPS": 16000
+    },
+    "0x21709e63fc7f264f329e0826ea82197694b82775": {
+      "symbol": "testUSDT",
+      "collateralClass": 2,
+      "minCollateralRatioBIPS": 12000,
+      "safetyMinCollateralRatioBIPS": 13000
+    }
+  },
+  "redemption": {
+    "lots": 600,
+    "queueTickets": 19,
+    "lotSizeXRP": 10,
+    "requestedXRP": 6000,
+    "filledXRP": 6000,
+    "shortfallXRP": 0,
+    "ticketsUsed": 4,
+    "maxRedeemedTickets": 20,
+    "cappedByTickets": false,
+    "fills": [
+      {
+        "address": "0x5b89514d1F060AdbEA8B7294AFf81ed8dbAa7fC5",
+        "uba": "2270000000",
+        "xrp": 2270,
+        "share": 0.37833333333333335,
+        "backingSurplus": 2.0330591377083094,
+        "status": "NORMAL",
+        "underBacked": false
+      },
+      {
+        "address": "0xd5dEFe2c62D48788BB3889534FBFe7Aea0602D64",
+        "uba": "2130000000",
+        "xrp": 2130,
+        "share": 0.355,
+        "backingSurplus": 2.437657520086351,
+        "status": "NORMAL",
+        "underBacked": false
+      },
+      {
+        "address": "0x55c815260cBE6c45Fe5bFe5FF32E3C7D746f14dC",
+        "uba": "1060000000",
+        "xrp": 1060,
+        "share": 0.17666666666666667,
+        "backingSurplus": 19.601177736251778,
+        "status": "NORMAL",
+        "underBacked": false
+      },
+      {
+        "address": "0x165c62b4531D28E34c68a8b2aCBF4D0421e4E028",
+        "uba": "540000000",
+        "xrp": 540,
+        "share": 0.09,
+        "backingSurplus": 2.6822021379412204,
+        "status": "NORMAL",
+        "underBacked": false
+      }
+    ],
+    "atRiskXRP": 0,
+    "atRiskShare": 0
+  },
+  "stress": {
+    "agent": "0xd5dEFe2c62D48788BB3889534FBFe7Aea0602D64",
+    "path": [
+      {
+        "stress": 0,
+        "vaultBuffer": 19.377083333333335,
+        "poolBuffer": 5.595,
+        "backingSurplus": 2.437657520086351,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.16666666666666666,
+        "vaultBuffer": 16.147569444444446,
+        "poolBuffer": 4.6625,
+        "backingSurplus": 2.0147146000719593,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.3333333333333333,
+        "vaultBuffer": 12.918055555555558,
+        "poolBuffer": 3.7300000000000004,
+        "backingSurplus": 1.5917716800575674,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.5,
+        "vaultBuffer": 9.688541666666667,
+        "poolBuffer": 2.7975,
+        "backingSurplus": 1.1688287600431755,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.6666666666666666,
+        "vaultBuffer": 6.459027777777779,
+        "poolBuffer": 1.8650000000000002,
+        "backingSurplus": 0.7458858400287838,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.8333333333333334,
+        "vaultBuffer": 3.2295138888888886,
+        "poolBuffer": 0.9324999999999998,
+        "backingSurplus": 0.32294292001439173,
+        "score": 84,
+        "warnings": []
+      },
+      {
+        "stress": 1,
+        "vaultBuffer": 0,
+        "poolBuffer": 0,
+        "backingSurplus": -0.1,
+        "score": 28,
+        "warnings": [
+          "underlying XRP does not cover obligations — redemption may default to collateral",
+          "vault collateral within 10% of liquidation threshold",
+          "pool collateral within 10% of liquidation threshold"
+        ]
+      }
+    ]
+  },
+  "agents": [
+    {
+      "address": "0xd5dEFe2c62D48788BB3889534FBFe7Aea0602D64",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "rDEXUmuYAe9MCxVfoWArptSZNQPjKpRCXd",
+      "feeBIPS": 25,
+      "freeLots": 854,
+      "score": 97,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 2445.25,
+      "poolCR": 989.25,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 19.377083333333335,
+      "poolBuffer": 5.595,
+      "backingSurplus": 2.437657520086351,
+      "mintedXRP": 2166.294759,
+      "mintedUsd": 2324.7223936099467,
+      "underlyingXRP": 7446.979469,
+      "requiredXRP": 2166.294759,
+      "warnings": []
+    },
+    {
+      "address": "0x55c815260cBE6c45Fe5bFe5FF32E3C7D746f14dC",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "r4uKJRy9mjxGHw1yzS1SrtaKCUwT66MCcP",
+      "feeBIPS": 25,
+      "freeLots": 557,
+      "score": 97,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 691.01,
+      "poolCR": 1066.58,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 4.758416666666666,
+      "poolBuffer": 6.110533333333334,
+      "backingSurplus": 19.601177736251778,
+      "mintedXRP": 2274.276941,
+      "mintedUsd": 2440.601636526153,
+      "underlyingXRP": 46852.783483,
+      "requiredXRP": 2274.276941,
+      "warnings": []
+    },
+    {
+      "address": "0x165c62b4531D28E34c68a8b2aCBF4D0421e4E028",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "rDYeqGVc8M3Se9wowvRDbURGYGZ5i5VF6r",
+      "feeBIPS": 25,
+      "freeLots": 143,
+      "score": 97,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 291.93,
+      "poolCR": 331.48,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 1.43275,
+      "poolBuffer": 1.2098666666666666,
+      "backingSurplus": 2.6822021379412204,
+      "mintedXRP": 1516.101738,
+      "mintedUsd": 1626.9788064051538,
+      "underlyingXRP": 5582.593061,
+      "requiredXRP": 1516.101738,
+      "warnings": []
+    },
+    {
+      "address": "0x5b89514d1F060AdbEA8B7294AFf81ed8dbAa7fC5",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "r4GHJwGSaGmJy9BBXS9osFXqRjqdSm7v83",
+      "feeBIPS": 25,
+      "freeLots": 49,
+      "score": 62,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 191.59,
+      "poolCR": 206.42,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 0.5965833333333334,
+      "poolBuffer": 0.3761333333333333,
+      "backingSurplus": 2.0330591377083094,
+      "mintedXRP": 2330.07,
+      "mintedUsd": 2500.47500931,
+      "underlyingXRP": 7067.240105,
+      "requiredXRP": 2330.07,
+      "warnings": []
+    }
+  ]
+});
+</script>
+</body>
+</html>
