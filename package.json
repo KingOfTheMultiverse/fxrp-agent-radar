@@ -6,7 +6,8 @@
     "test": "node test/radar.test.mjs",
     "start": "node bin/radar.mjs",
     "snapshot": "node bin/snapshot.mjs",
-    "web": "cd web && python3 -m http.server 8899"
+    "web": "cd web && python3 -m http.server 8899",
+    "standalone": "node bin/build-standalone.mjs"
   },
   "keywords": [],
   "type": "module",

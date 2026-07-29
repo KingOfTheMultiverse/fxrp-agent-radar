@@ -58,6 +58,7 @@ npm start -- --json   # machine-readable
 
 npm run snapshot      # write web/data.json from chain
 npm run web           # serve the dashboard at :8899
+npm run standalone    # web/standalone.html — single file, opens offline
 ```
 
 Example:
