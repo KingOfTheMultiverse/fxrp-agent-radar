@@ -4,6 +4,8 @@ Risk tooling for Flare FAssets. Reads live chain state on Coston2 and answers th
 questions the protocol leaves to the user: **which agent is safe to mint through**, and
 **who the redemption queue will actually send you to**.
 
+**Live demo: https://kingofthemultiverse.github.io/fxrp-agent-radar/**
+
 ![dashboard](web/shot-light.png)
 
 ## The problem
