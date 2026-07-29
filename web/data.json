@@ -1,0 +1,196 @@
+{
+  "generatedAt": "2026-07-29T03:09:23.888Z",
+  "network": "Coston2",
+  "chainId": 114,
+  "block": 33386379,
+  "prices": {
+    "FLR": {
+      "usd": 0.00626003,
+      "updatedAt": 1785294557
+    },
+    "XRP": {
+      "usd": 1.078812,
+      "updatedAt": 1785294557
+    }
+  },
+  "totals": {
+    "agents": 4,
+    "healthy": 4,
+    "mintedXRP": 8196.633438,
+    "mintedUsd": 8842.626512515657,
+    "freeLots": 1605
+  },
+  "thresholds": {
+    "0xc67dce33d7a8efa5ffeb961899c73fe01bce9273": {
+      "symbol": "C2FLR",
+      "collateralClass": 1,
+      "minCollateralRatioBIPS": 15000,
+      "safetyMinCollateralRatioBIPS": 16000
+    },
+    "0x21709e63fc7f264f329e0826ea82197694b82775": {
+      "symbol": "testUSDT",
+      "collateralClass": 2,
+      "minCollateralRatioBIPS": 12000,
+      "safetyMinCollateralRatioBIPS": 13000
+    }
+  },
+  "stress": {
+    "agent": "0xd5dEFe2c62D48788BB3889534FBFe7Aea0602D64",
+    "path": [
+      {
+        "stress": 0,
+        "vaultBuffer": 19.277083333333334,
+        "poolBuffer": 5.583333333333333,
+        "backingSurplus": 2.437657520086351,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.16666666666666666,
+        "vaultBuffer": 16.06423611111111,
+        "poolBuffer": 4.652777777777778,
+        "backingSurplus": 2.0147146000719593,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.3333333333333333,
+        "vaultBuffer": 12.85138888888889,
+        "poolBuffer": 3.7222222222222223,
+        "backingSurplus": 1.5917716800575674,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.5,
+        "vaultBuffer": 9.638541666666667,
+        "poolBuffer": 2.7916666666666665,
+        "backingSurplus": 1.1688287600431755,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.6666666666666666,
+        "vaultBuffer": 6.425694444444445,
+        "poolBuffer": 1.8611111111111112,
+        "backingSurplus": 0.7458858400287838,
+        "score": 97,
+        "warnings": []
+      },
+      {
+        "stress": 0.8333333333333334,
+        "vaultBuffer": 3.2128472222222215,
+        "poolBuffer": 0.9305555555555552,
+        "backingSurplus": 0.32294292001439173,
+        "score": 84,
+        "warnings": []
+      },
+      {
+        "stress": 1,
+        "vaultBuffer": 0,
+        "poolBuffer": 0,
+        "backingSurplus": -0.1,
+        "score": 28,
+        "warnings": [
+          "underlying XRP does not cover obligations — redemption may default to collateral",
+          "vault collateral within 10% of liquidation threshold",
+          "pool collateral within 10% of liquidation threshold"
+        ]
+      }
+    ]
+  },
+  "agents": [
+    {
+      "address": "0xd5dEFe2c62D48788BB3889534FBFe7Aea0602D64",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "rDEXUmuYAe9MCxVfoWArptSZNQPjKpRCXd",
+      "feeBIPS": 25,
+      "freeLots": 852,
+      "score": 97,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 2433.25,
+      "poolCR": 987.5,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 19.277083333333334,
+      "poolBuffer": 5.583333333333333,
+      "backingSurplus": 2.437657520086351,
+      "mintedXRP": 2166.294759,
+      "mintedUsd": 2337.024781546308,
+      "underlyingXRP": 7446.979469,
+      "requiredXRP": 2166.294759,
+      "warnings": []
+    },
+    {
+      "address": "0x55c815260cBE6c45Fe5bFe5FF32E3C7D746f14dC",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "r4uKJRy9mjxGHw1yzS1SrtaKCUwT66MCcP",
+      "feeBIPS": 25,
+      "freeLots": 564,
+      "score": 97,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 722.6,
+      "poolCR": 1118.87,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 5.0216666666666665,
+      "poolBuffer": 6.459133333333333,
+      "backingSurplus": 20.598383931232966,
+      "mintedXRP": 2164.166941,
+      "mintedUsd": 2334.729265954092,
+      "underlyingXRP": 46742.508483,
+      "requiredXRP": 2164.166941,
+      "warnings": []
+    },
+    {
+      "address": "0x165c62b4531D28E34c68a8b2aCBF4D0421e4E028",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "rDYeqGVc8M3Se9wowvRDbURGYGZ5i5VF6r",
+      "feeBIPS": 25,
+      "freeLots": 140,
+      "score": 97,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 284.86,
+      "poolCR": 324.47,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 1.3738333333333332,
+      "poolBuffer": 1.1631333333333334,
+      "backingSurplus": 2.6300606609886628,
+      "mintedXRP": 1536.101738,
+      "mintedUsd": 1657.1649881752562,
+      "underlyingXRP": 5612.443097,
+      "requiredXRP": 1546.101738,
+      "warnings": []
+    },
+    {
+      "address": "0x5b89514d1F060AdbEA8B7294AFf81ed8dbAa7fC5",
+      "status": "NORMAL",
+      "publiclyAvailable": true,
+      "underlyingAddress": "r4GHJwGSaGmJy9BBXS9osFXqRjqdSm7v83",
+      "feeBIPS": 25,
+      "freeLots": 49,
+      "score": 62,
+      "vaultSymbol": "testUSDT",
+      "poolSymbol": "C2FLR",
+      "vaultCR": 190.65,
+      "poolCR": 206.05,
+      "vaultMin": 120,
+      "poolMin": 150,
+      "vaultBuffer": 0.58875,
+      "poolBuffer": 0.37366666666666665,
+      "backingSurplus": 2.0330591377083094,
+      "mintedXRP": 2330.07,
+      "mintedUsd": 2513.7074768400003,
+      "underlyingXRP": 7067.240105,
+      "requiredXRP": 2330.07,
+      "warnings": []
+    }
+  ]
+}

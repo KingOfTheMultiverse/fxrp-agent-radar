@@ -1,0 +1,19 @@
+{
+  "name": "fxrp-agent-radar",
+  "version": "1.0.0",
+  "description": "Risk-scored agent selection for Flare FAssets — liquidation proximity and redemption-default exposure",
+  "scripts": {
+    "test": "node test/radar.test.mjs",
+    "start": "node bin/radar.mjs",
+    "snapshot": "node bin/snapshot.mjs",
+    "web": "cd web && python3 -m http.server 8899"
+  },
+  "keywords": [],
+  "type": "module",
+  "dependencies": {
+    "@flarenetwork/flare-periphery-contract-artifacts": "^0.1.52",
+    "ethers": "^6.17.0",
+    "playwright": "^1.62.0"
+  },
+  "license": "MIT"
+}

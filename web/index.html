@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FXRP Agent Radar — Flare FAssets</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --plane: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --seq: #2a78d6;
+    --seq-track: #e1e0d9;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --plane: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --seq: #3987e5;
+      --seq-track: #2c2c2a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --plane: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --seq: #3987e5;
+    --seq-track: #2c2c2a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 64px;
+    background: var(--plane); color: var(--text-primary);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--text-secondary); margin: 0 0 4px; }
+  .meta { color: var(--muted); font-size: 13px; margin: 0 0 28px; font-variant-numeric: tabular-nums; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .tile .label { color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
+  .tile .value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  .tile .note { color: var(--muted); font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  .panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .panel h2 { font-size: 15px; margin: 0; padding: 16px 18px 12px; border-bottom: 1px solid var(--grid); }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 940px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+  th { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .score { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--text-secondary); }
+
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; white-space: nowrap; }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .status.good .dot { background: var(--good); }
+  .status.warning .dot { background: var(--warning); }
+  .status.critical .dot { background: var(--critical); }
+
+  .bar { display: flex; align-items: center; gap: 9px; }
+  .track { position: relative; flex: 1; min-width: 74px; height: 8px; background: var(--seq-track); border-radius: 4px; overflow: hidden; }
+  .fill { position: absolute; inset: 0 auto 0 0; background: var(--seq); border-radius: 4px; }
+  .bar .v { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); min-width: 52px; text-align: right; }
+
+  .warn { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--text-secondary); padding: 2px 0; }
+  .warn .ico { flex: none; font-weight: 700; }
+  .warn.serious .ico { color: var(--serious); }
+  .warn.critical .ico { color: var(--critical); }
+  .ok { color: var(--muted); font-size: 12.5px; }
+
+  .notes { margin-top: 24px; color: var(--text-secondary); font-size: 13.5px; }
+  .notes h3 { font-size: 14px; margin: 0 0 8px; color: var(--text-primary); }
+  .notes li { margin-bottom: 6px; }
+  code { background: var(--plane); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FXRP Agent Radar</h1>
+  <p class="sub">Risk-scored agent selection for Flare FAssets — surfaces liquidation proximity and redemption-default exposure before you commit.</p>
+  <p class="meta" id="meta">loading…</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="panel">
+    <h2>Agents, ranked by risk-adjusted score</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Score</th>
+            <th>Status</th>
+            <th class="num">Fee</th>
+            <th class="num">Free lots</th>
+            <th>Vault collateral buffer</th>
+            <th>Pool collateral buffer</th>
+            <th>XRP backing surplus</th>
+            <th>Assessment</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" id="stressPanel" style="margin-top:20px">
+    <h2>Stress preview — how the score responds as an agent degrades</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Stress</th>
+            <th class="num">Score</th>
+            <th>Vault buffer</th>
+            <th>Pool buffer</th>
+            <th>XRP backing</th>
+            <th>Flags raised</th>
+          </tr>
+        </thead>
+        <tbody id="stressRows"></tbody>
+      </table>
+    </div>
+    <p style="margin:0;padding:12px 18px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--grid)">
+      Simulated, not on-chain. Every live agent on Coston2 is heavily over-collateralised, so the
+      dangerous end of the curve never appears in real data. This replays the same scoring functions
+      down a degradation path from <span id="stressAgent" class="addr"></span>'s real current state.
+    </p>
+  </div>
+
+  <div class="notes">
+    <h3>How the score works</h3>
+    <ul>
+      <li><strong>Collateral buffer</strong> — headroom above the liquidation threshold, as a fraction of it. <code>0%</code> means the agent is sitting exactly on the line. Vault and pool are scored separately and the weaker one governs.</li>
+      <li><strong>XRP backing surplus</strong> — underlying XRP the agent holds versus what it owes redeemers. If this goes negative, redemption pays out <em>collateral</em> at the default factor instead of actual XRP. A redeemer who wanted XRP does not get XRP.</li>
+      <li><strong>Weighting</strong> — 40% collateral safety, 30% backing, 20% capacity, 10% fee. Safety outranks price deliberately: a few basis points of fee never compensates for a failed redemption.</li>
+      <li>Any agent not in <code>NORMAL</code> status scores 0 and is never routed to.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const fmtPct = (x) => (x * 100).toFixed(1) + '%';
+const fmtNum = (n, d = 0) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtUsd = (n) => '$' + n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+// Buffer is unbounded above; cap the bar at 3x the threshold so the low end stays legible.
+const BAR_CAP = 3;
+const barScaled = (value, cap) => {
+  const pct = Math.max(0, Math.min(1, value / cap)) * 100;
+  return `<div class="bar"><div class="track"><div class="fill" style="width:${pct.toFixed(1)}%"></div></div><span class="v">${fmtPct(value)}</span></div>`;
+};
+// Agent table: fixed cap so agents are comparable to each other.
+const bar = (buffer) => barScaled(buffer, BAR_CAP);
+
+const statusCell = (s) => {
+  const cls = s === 'NORMAL' ? 'good' : (s === 'CCB' ? 'warning' : 'critical');
+  return `<span class="status ${cls}"><span class="dot"></span>${s}</span>`;
+};
+
+fetch('./data.json').then(r => r.json()).then(d => {
+  const t = d.totals;
+  document.getElementById('meta').textContent =
+    `${d.network} (chain ${d.chainId}) · block ${d.block.toLocaleString()} · XRP ${fmtUsd(d.prices.XRP.usd)} · FLR $${d.prices.FLR.usd.toFixed(5)} · FTSOv2 · generated ${new Date(d.generatedAt).toUTCString()}`;
+
+  document.getElementById('tiles').innerHTML = [
+    { label: 'Healthy agents', value: `${t.healthy} / ${t.agents}`, note: 'status NORMAL' },
+    { label: 'FXRP minted', value: fmtNum(t.mintedXRP, 0), note: t.mintedUsd ? fmtUsd(t.mintedUsd) + ' at FTSO price' : '' },
+    { label: 'Free capacity', value: fmtNum(t.freeLots), note: `${fmtNum(t.freeLots * 10)} XRP mintable` },
+    { label: 'Best score', value: String(d.agents[0]?.score ?? '—'), note: 'risk-adjusted, 0–100' },
+  ].map(x => `<div class="tile"><div class="label">${x.label}</div><div class="value">${x.value}</div><div class="note">${x.note}</div></div>`).join('');
+
+  document.getElementById('rows').innerHTML = d.agents.map(a => {
+    const assessment = a.warnings.length
+      ? a.warnings.map(w => {
+          const sev = /do not route|may default/.test(w) ? 'critical' : 'serious';
+          return `<div class="warn ${sev}"><span class="ico">!</span><span>${w}</span></div>`;
+        }).join('')
+      : '<span class="ok">no flags — safe to route</span>';
+    return `<tr>
+      <td class="num"><span class="score">${a.score}</span></td>
+      <td>${statusCell(a.status)}<div class="addr">${a.address.slice(0,10)}…${a.address.slice(-6)}</div></td>
+      <td class="num">${(a.feeBIPS/100).toFixed(2)}%</td>
+      <td class="num">${fmtNum(a.freeLots)}</td>
+      <td>${bar(a.vaultBuffer)}<div class="addr">${a.vaultCR.toFixed(0)}% vs ${a.vaultMin.toFixed(0)}% min (${a.vaultSymbol})</div></td>
+      <td>${bar(a.poolBuffer)}<div class="addr">${a.poolCR.toFixed(0)}% vs ${a.poolMin.toFixed(0)}% min (${a.poolSymbol})</div></td>
+      <td>${bar(a.backingSurplus)}<div class="addr">${fmtNum(a.underlyingXRP,0)} held vs ${fmtNum(a.requiredXRP,0)} owed</div></td>
+      <td>${assessment}</td>
+    </tr>`;
+  }).join('');
+  if (d.stress) {
+    document.getElementById('stressAgent').textContent =
+      d.stress.agent.slice(0, 10) + '…' + d.stress.agent.slice(-6);
+    // Scale each stress column to its own starting value so the decline is legible.
+    const p0 = d.stress.path[0];
+    const scale = {
+      vault: Math.max(p0.vaultBuffer, 1e-9),
+      pool: Math.max(p0.poolBuffer, 1e-9),
+      backing: Math.max(p0.backingSurplus, 1e-9),
+    };
+    document.getElementById('stressRows').innerHTML = d.stress.path.map(s => {
+      const flags = s.warnings.length
+        ? s.warnings.map(w => {
+            const sev = /do not route|may default/.test(w) ? 'critical' : 'serious';
+            return `<div class="warn ${sev}"><span class="ico">!</span><span>${w}</span></div>`;
+          }).join('')
+        : '<span class="ok">none</span>';
+      return `<tr>
+        <td class="num">${(s.stress * 100).toFixed(0)}%</td>
+        <td class="num"><span class="score">${s.score}</span></td>
+        <td>${barScaled(s.vaultBuffer, scale.vault)}</td>
+        <td>${barScaled(s.poolBuffer, scale.pool)}</td>
+        <td>${barScaled(s.backingSurplus, scale.backing)}</td>
+        <td>${flags}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    document.getElementById('stressPanel').style.display = 'none';
+  }
+}).catch(e => {
+  document.getElementById('meta').textContent = 'failed to load data.json — run `npm run snapshot` first (' + e.message + ')';
+});
+</script>
+</body>
+</html>
