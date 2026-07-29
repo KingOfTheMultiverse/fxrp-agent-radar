@@ -8,7 +8,7 @@
  */
 import {
   connect, scanAgents, bestAgentForLots, fmt,
-  loadRedemptionQueue, previewRedemption,
+  loadRedemptionQueue, previewRedemption, getSetting,
 } from '../src/radar.mjs';
 
 const argv = process.argv.slice(2);
@@ -81,15 +81,21 @@ if (lots > 0) {
 const redeemLots = Number(flag('--redeem', 0));
 if (redeemLots > 0) {
   const lotSize = await conn.assetManager.lotSize();
+  const maxTickets = Number(await getSetting(conn, 'maxRedeemedTickets'));
   const queue = await loadRedemptionQueue(conn);
   const byAgent = Object.fromEntries(agents.map((a) => [a.address.toLowerCase(), a]));
-  const p = previewRedemption(queue, byAgent, redeemLots, lotSize);
+  const p = previewRedemption(queue, byAgent, redeemLots, lotSize, maxTickets);
 
   console.log(`\nREDEEM — you do NOT choose. ${redeemLots} lot(s) = ${p.requestedXRP} XRP off a ${queue.length}-ticket queue:`);
   for (const f of p.fills) {
     const risk = f.underBacked ? '  <-- under-backed, this share likely pays collateral not XRP' : '';
     console.log(`  ${(f.share * 100).toFixed(1).padStart(5)}%  ${fmt.xrp(f.uba).padStart(10)} XRP  ${f.address}  backing=${f.backingSurplus === null ? '?' : fmt.pct(f.backingSurplus)}${risk}`);
   }
-  if (p.shortfallXRP > 0) console.log(`  shortfall: ${p.shortfallXRP} XRP — queue is too shallow to fill this request`);
+  if (p.shortfallXRP > 0) {
+    console.log(p.cappedByTickets
+      ? `  shortfall: ${p.shortfallXRP} XRP — hit the ${p.maxRedeemedTickets}-ticket cap per redemption; redeem again for the rest`
+      : `  shortfall: ${p.shortfallXRP} XRP — queue is too shallow to fill this request`);
+  }
+  console.log(`  tickets consumed: ${p.ticketsUsed}/${p.maxRedeemedTickets} (protocol cap per transaction)`);
   console.log(`  at risk of collateral-instead-of-XRP: ${p.atRiskXRP} XRP (${fmt.pct(p.atRiskShare)})`);
 }

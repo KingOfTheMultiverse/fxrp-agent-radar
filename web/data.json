@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-07-29T03:33:23.608Z",
+  "generatedAt": "2026-07-29T03:37:33.084Z",
   "network": "Coston2",
   "chainId": 114,
-  "block": 33386975,
+  "block": 33387075,
   "prices": {
     "FLR": {
-      "usd": 0.00623061,
-      "updatedAt": 1785295991
+      "usd": 0.00624026,
+      "updatedAt": 1785296247
     },
     "XRP": {
-      "usd": 1.071592,
-      "updatedAt": 1785295991
+      "usd": 1.073133,
+      "updatedAt": 1785296247
     }
   },
   "totals": {
     "agents": 4,
     "healthy": 4,
     "mintedXRP": 8286.743438,
-    "mintedUsd": 8880.007974213297,
-    "freeLots": 1604
+    "mintedUsd": 8892.777845851253,
+    "freeLots": 1603
   },
   "thresholds": {
     "0xc67dce33d7a8efa5ffeb961899c73fe01bce9273": {
@@ -41,6 +41,9 @@
     "requestedXRP": 6000,
     "filledXRP": 6000,
     "shortfallXRP": 0,
+    "ticketsUsed": 4,
+    "maxRedeemedTickets": 20,
+    "cappedByTickets": false,
     "fills": [
       {
         "address": "0x5b89514d1F060AdbEA8B7294AFf81ed8dbAa7fC5",
@@ -87,48 +90,48 @@
     "path": [
       {
         "stress": 0,
-        "vaultBuffer": 19.403666666666666,
-        "poolBuffer": 5.604133333333333,
+        "vaultBuffer": 19.377083333333335,
+        "poolBuffer": 5.595,
         "backingSurplus": 2.437657520086351,
         "score": 97,
         "warnings": []
       },
       {
         "stress": 0.16666666666666666,
-        "vaultBuffer": 16.169722222222223,
-        "poolBuffer": 4.670111111111112,
+        "vaultBuffer": 16.147569444444446,
+        "poolBuffer": 4.6625,
         "backingSurplus": 2.0147146000719593,
         "score": 97,
         "warnings": []
       },
       {
         "stress": 0.3333333333333333,
-        "vaultBuffer": 12.935777777777778,
-        "poolBuffer": 3.7360888888888892,
+        "vaultBuffer": 12.918055555555558,
+        "poolBuffer": 3.7300000000000004,
         "backingSurplus": 1.5917716800575674,
         "score": 97,
         "warnings": []
       },
       {
         "stress": 0.5,
-        "vaultBuffer": 9.701833333333333,
-        "poolBuffer": 2.8020666666666667,
+        "vaultBuffer": 9.688541666666667,
+        "poolBuffer": 2.7975,
         "backingSurplus": 1.1688287600431755,
         "score": 97,
         "warnings": []
       },
       {
         "stress": 0.6666666666666666,
-        "vaultBuffer": 6.467888888888889,
-        "poolBuffer": 1.8680444444444446,
+        "vaultBuffer": 6.459027777777779,
+        "poolBuffer": 1.8650000000000002,
         "backingSurplus": 0.7458858400287838,
         "score": 97,
         "warnings": []
       },
       {
         "stress": 0.8333333333333334,
-        "vaultBuffer": 3.2339444444444436,
-        "poolBuffer": 0.934022222222222,
+        "vaultBuffer": 3.2295138888888886,
+        "poolBuffer": 0.9324999999999998,
         "backingSurplus": 0.32294292001439173,
         "score": 84,
         "warnings": []
@@ -158,15 +161,15 @@
       "score": 97,
       "vaultSymbol": "testUSDT",
       "poolSymbol": "C2FLR",
-      "vaultCR": 2448.44,
-      "poolCR": 990.62,
+      "vaultCR": 2445.25,
+      "poolCR": 989.25,
       "vaultMin": 120,
       "poolMin": 150,
-      "vaultBuffer": 19.403666666666666,
-      "poolBuffer": 5.604133333333333,
+      "vaultBuffer": 19.377083333333335,
+      "poolBuffer": 5.595,
       "backingSurplus": 2.437657520086351,
       "mintedXRP": 2166.294759,
-      "mintedUsd": 2321.384133386328,
+      "mintedUsd": 2324.7223936099467,
       "underlyingXRP": 7446.979469,
       "requiredXRP": 2166.294759,
       "warnings": []
@@ -177,19 +180,19 @@
       "publiclyAvailable": true,
       "underlyingAddress": "r4uKJRy9mjxGHw1yzS1SrtaKCUwT66MCcP",
       "feeBIPS": 25,
-      "freeLots": 558,
+      "freeLots": 557,
       "score": 97,
       "vaultSymbol": "testUSDT",
       "poolSymbol": "C2FLR",
-      "vaultCR": 691.91,
-      "poolCR": 1068.06,
+      "vaultCR": 691.01,
+      "poolCR": 1066.58,
       "vaultMin": 120,
       "poolMin": 150,
-      "vaultBuffer": 4.765916666666667,
-      "poolBuffer": 6.1204,
+      "vaultBuffer": 4.758416666666666,
+      "poolBuffer": 6.110533333333334,
       "backingSurplus": 19.601177736251778,
       "mintedXRP": 2274.276941,
-      "mintedUsd": 2437.0969757600724,
+      "mintedUsd": 2440.601636526153,
       "underlyingXRP": 46852.783483,
       "requiredXRP": 2274.276941,
       "warnings": []
@@ -204,15 +207,15 @@
       "score": 97,
       "vaultSymbol": "testUSDT",
       "poolSymbol": "C2FLR",
-      "vaultCR": 292.31,
-      "poolCR": 331.94,
+      "vaultCR": 291.93,
+      "poolCR": 331.48,
       "vaultMin": 120,
       "poolMin": 150,
-      "vaultBuffer": 1.4359166666666667,
-      "poolBuffer": 1.2129333333333334,
+      "vaultBuffer": 1.43275,
+      "poolBuffer": 1.2098666666666666,
       "backingSurplus": 2.6822021379412204,
       "mintedXRP": 1516.101738,
-      "mintedUsd": 1624.642493626896,
+      "mintedUsd": 1626.9788064051538,
       "underlyingXRP": 5582.593061,
       "requiredXRP": 1516.101738,
       "warnings": []
@@ -227,15 +230,15 @@
       "score": 62,
       "vaultSymbol": "testUSDT",
       "poolSymbol": "C2FLR",
-      "vaultCR": 191.84,
-      "poolCR": 206.7,
+      "vaultCR": 191.59,
+      "poolCR": 206.42,
       "vaultMin": 120,
       "poolMin": 150,
-      "vaultBuffer": 0.5986666666666667,
-      "poolBuffer": 0.378,
+      "vaultBuffer": 0.5965833333333334,
+      "poolBuffer": 0.3761333333333333,
       "backingSurplus": 2.0330591377083094,
       "mintedXRP": 2330.07,
-      "mintedUsd": 2496.8843714400005,
+      "mintedUsd": 2500.47500931,
       "underlyingXRP": 7067.240105,
       "requiredXRP": 2330.07,
       "warnings": []

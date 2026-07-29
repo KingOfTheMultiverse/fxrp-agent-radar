@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Writes web/data.json — the dashboard's data source. */
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { connect, scanAgents, stressPath, loadRedemptionQueue, previewRedemption } from '../src/radar.mjs';
+import { connect, scanAgents, stressPath, loadRedemptionQueue, previewRedemption, getSetting } from '../src/radar.mjs';
 
 const conn = await connect();
 const { agents, thresholds, prices } = await scanAgents(conn);
@@ -11,7 +11,8 @@ const queue = await loadRedemptionQueue(conn);
 const byAgent = Object.fromEntries(agents.map((a) => [a.address.toLowerCase(), a]));
 // A redemption big enough to span several agents shows what the queue actually does.
 const REDEEM_LOTS = 600;
-const preview = previewRedemption(queue, byAgent, REDEEM_LOTS, lotSize);
+const maxTickets = Number(await getSetting(conn, 'maxRedeemedTickets'));
+const preview = previewRedemption(queue, byAgent, REDEEM_LOTS, lotSize, maxTickets);
 
 const totalMintedUBA = agents.reduce((s, a) => s + a.mintedUBA, 0n);
 

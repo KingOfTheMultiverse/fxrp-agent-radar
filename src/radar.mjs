@@ -1,17 +1,24 @@
 /**
- * FXRP Agent Radar — risk-scored agent selection for Flare FAssets.
+ * FXRP Agent Radar — risk tooling for Flare FAssets.
  *
- * FAssets users must pick an agent to mint or redeem FXRP through, but the
- * AssetManager exposes only raw fields. Two risks are invisible in the UI:
+ * FAssets splits the risk in two, and the halves are not symmetric:
  *
- *  1. Liquidation proximity — an agent near its minimum collateral ratio can
- *     enter liquidation, which disrupts redemption.
- *  2. Redemption default — if an agent's underlying XRP balance does not cover
- *     what it owes, redemption pays out collateral at
- *     `redemptionDefaultFactorVaultCollateralBIPS` instead of actual XRP. A
- *     redeemer who wanted XRP does not get XRP.
+ *   Minting  — `reserveCollateral(address _agentVault, ...)` takes an agent, so the
+ *              user chooses, and agent scoring is what helps.
+ *   Redeeming — `redeem(uint256 _lots, ...)` takes no agent. Tickets are consumed from
+ *              a global FIFO queue, so the user gets whoever is at its head and can
+ *              only look ahead, not choose.
  *
- * This module reads live chain state and turns it into a comparable score.
+ * The AssetManager exposes 40 raw fields per agent and no judgement. Two risks are
+ * invisible:
+ *
+ *  1. Liquidation proximity — a raw collateral ratio means nothing without its
+ *     threshold, and vault and pool thresholds differ (120% vs 150%).
+ *  2. Redemption default — if an agent's underlying XRP no longer covers what it owes,
+ *     redemption pays collateral at `redemptionDefaultFactorVaultCollateralBIPS`
+ *     instead of XRP. A redeemer who wanted XRP does not get XRP.
+ *
+ * This module reads live chain state and turns both into comparable numbers.
  */
 import pkg from '@flarenetwork/flare-periphery-contract-artifacts';
 import { ethers } from 'ethers';
@@ -198,23 +205,31 @@ export async function scanAgents(conn) {
  * underlying XRP does not cover what they owe. That portion is the part likely to pay
  * out in collateral rather than XRP.
  *
+ * A single redemption consumes at most `maxRedeemedTickets` tickets — the protocol caps
+ * this to bound gas. A request spanning more tickets than that is only partly filled in
+ * one transaction, so the cap is modelled here rather than assumed away.
+ *
  * @param queue    [{ agentVault, ticketValueUBA }] in queue order
  * @param byAgent  address (lowercased) -> scanned agent
  * @param lots     lots the user intends to redeem
  * @param lotSizeUBA  UBA per lot
+ * @param maxRedeemedTickets  protocol cap on tickets consumed per redemption
  */
-export function previewRedemption(queue, byAgent, lots, lotSizeUBA) {
+export function previewRedemption(queue, byAgent, lots, lotSizeUBA, maxRedeemedTickets = 20) {
   let remaining = BigInt(lots) * BigInt(lotSizeUBA);
   const requested = remaining;
   const fills = new Map();
+  let ticketsUsed = 0;
 
   for (const t of queue) {
-    if (remaining <= 0n) break;
+    if (remaining <= 0n || ticketsUsed >= maxRedeemedTickets) break;
     const take = t.ticketValueUBA < remaining ? t.ticketValueUBA : remaining;
     const key = String(t.agentVault).toLowerCase();
     fills.set(key, (fills.get(key) ?? 0n) + take);
     remaining -= take;
+    ticketsUsed++;
   }
+  const cappedByTickets = remaining > 0n && ticketsUsed >= maxRedeemedTickets;
 
   const filled = requested - remaining;
   const rows = [...fills.entries()].map(([addr, uba]) => {
@@ -235,11 +250,25 @@ export function previewRedemption(queue, byAgent, lots, lotSizeUBA) {
   return {
     requestedXRP: Number(requested) / 1e6,
     filledXRP: Number(filled) / 1e6,
-    shortfallXRP: Number(remaining) / 1e6, // queue too shallow to serve the request
+    shortfallXRP: Number(remaining) / 1e6,
+    ticketsUsed,
+    maxRedeemedTickets,
+    // Distinguishes "the queue ran out" from "the per-transaction ticket cap was hit" —
+    // the second is recoverable by redeeming again, the first is not.
+    cappedByTickets,
     fills: rows,
     atRiskXRP: Number(atRisk) / 1e6,
     atRiskShare: filled > 0n ? Number(atRisk) / Number(filled) : 0,
   };
+}
+
+/** Reads a single named field out of AssetManager settings. */
+export async function getSetting({ assetManager, abi }, name) {
+  const raw = await assetManager.getSettings();
+  const comps = abi.find((f) => f.name === 'getSettings').outputs[0].components;
+  const i = comps.findIndex((c) => c.name === name);
+  if (i === -1) throw new Error(`unknown setting: ${name}`);
+  return raw[i];
 }
 
 /** Reads the redemption queue, paging until exhausted or `max` tickets collected. */

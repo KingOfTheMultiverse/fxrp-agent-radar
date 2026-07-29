@@ -280,8 +280,10 @@ function render(d) {
       </tr>`).join('');
     document.getElementById('redeemFoot').innerHTML =
       `<code>redeem()</code> takes no agent argument — tickets are consumed in queue order, so this split is not a preference, it is what you will get. `
-      + `Queue holds ${n0(r.queueTickets)} tickets at ${r.lotSizeXRP} XRP per lot. `
-      + (r.shortfallXRP > 0 ? `<strong>Shortfall ${n0(r.shortfallXRP)} XRP</strong> — the queue is too shallow to fill this request. ` : '')
+      + `Queue holds ${n0(r.queueTickets)} tickets at ${r.lotSizeXRP} XRP per lot; this fill consumes ${r.ticketsUsed} of the ${r.maxRedeemedTickets}-ticket protocol cap per transaction. `
+      + (r.shortfallXRP > 0 ? (r.cappedByTickets
+        ? `<strong>Shortfall ${n0(r.shortfallXRP)} XRP</strong> — the ticket cap was reached, so this needs more than one redemption transaction. `
+        : `<strong>Shortfall ${n0(r.shortfallXRP)} XRP</strong> — the queue is too shallow to fill this request. `) : '')
       + `At risk of paying collateral instead of XRP: <strong>${n0(r.atRiskXRP)} XRP (${pct(r.atRiskShare)})</strong>.`;
   } else {
     document.getElementById('redeemPanel').remove();

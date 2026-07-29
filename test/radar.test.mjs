@@ -91,3 +91,22 @@ assert.equal(shallow.filledXRP, 10, 'only what the queue holds is filled');
 assert.equal(shallow.shortfallXRP, 40, 'the rest is reported as shortfall');
 
 console.log('redemption-preview tests passed');
+
+// The protocol caps tickets consumed per redemption; a request spanning more than that
+// is only partly filled, and that is recoverable by redeeming again — unlike a queue
+// that has genuinely run dry. The two must not look the same.
+const manyTickets = Array.from({ length: 30 }, () => ({ agentVault: '0xAAA', ticketValueUBA: 10_000_000n }));
+const capped = previewRedemption(manyTickets, byAgent, 30, LOT, 20);
+assert.equal(capped.ticketsUsed, 20, 'must stop at the ticket cap');
+assert.equal(capped.filledXRP, 200, 'only 20 tickets worth is filled in one transaction');
+assert.equal(capped.shortfallXRP, 100, 'the rest is left unfilled');
+assert.equal(capped.cappedByTickets, true, 'shortfall here is the ticket cap, not a dry queue');
+
+const dry = previewRedemption([{ agentVault: '0xAAA', ticketValueUBA: 10_000_000n }], byAgent, 5, LOT, 20);
+assert.equal(dry.cappedByTickets, false, 'a shallow queue is not a ticket-cap shortfall');
+
+const within = previewRedemption(manyTickets, byAgent, 5, LOT, 20);
+assert.equal(within.cappedByTickets, false, 'a request inside the cap is not capped');
+assert.equal(within.shortfallXRP, 0, 'and has no shortfall');
+
+console.log('ticket-cap tests passed');
